@@ -8,12 +8,13 @@ from ..agents.data_enrichment_agent import (
     create_enrichment_node,
     create_update_lead_node,
 )
-from ..agents.lead_collector_agent import lead_collector_node
+from ..agents.lead_screener_agent import lead_screener_node
 from ..agents.lead_finder_agent import lead_finder_node
 from ..agents.orchestrator_agent import create_orchestrator_node
 from ..agents.summary_agent import create_summary_node
 from ..schema.state import State
 from ..tools.search_tool import create_search_tool
+from ...infrastructure.mcp_clients.client import get_mcp_client
 
 
 def route_after_chatbot(state: State) -> str:
@@ -32,19 +33,23 @@ def should_continue(state: State):
     )
 
 
-def build_graph(llm: ChatOpenAI | None = None) -> Any:
+async def build_graph(llm: ChatOpenAI | None = None) -> Any:
     """Build the B2B workflow graph."""
     if llm is None:
         llm = ChatOpenAI(model="gpt-4o-mini")
 
-    tools = [create_search_tool()]
+    # Get MCP tools (async)
+    mcp_client = await get_mcp_client()
+    mcp_tools = await mcp_client.get_tools()
+
+    tools = [create_search_tool()] + mcp_tools
 
     graph_builder = StateGraph(State)
 
     # Create nodes
     graph_builder.add_node("chatbot", create_orchestrator_node(llm))
     graph_builder.add_node("lead_finder", lead_finder_node)
-    graph_builder.add_node("triage", lead_collector_node)
+    graph_builder.add_node("triage", lead_screener_node)
     graph_builder.add_node("enricher", create_enrichment_node(llm, tools))
     graph_builder.add_node("tools", ToolNode(tools=tools))
     graph_builder.add_node("update_lead", create_update_lead_node(llm))

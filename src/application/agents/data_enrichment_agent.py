@@ -101,6 +101,3 @@ def create_update_lead_node(llm: ChatOpenAI):
 
     return node
 
-
-data_enrichment_node = None  # Will be set when LLM and tools are available
-

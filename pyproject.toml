@@ -1,51 +1,56 @@
-[tool.poetry]
+[project]
 name = "b2b-agent"
 version = "0.1.0"
 description = "B2B Agent - Multi-agent workflow system for lead finding, collection, and enrichment"
-authors = ["Your Name <you@example.com>"]
+authors = [
+    {name = "Your Name", email = "you@example.com"}
+]
 readme = "README.md"
-packages = [
-    {include = "application", from = "src"},
-    {include = "domain", from = "src"},
-    {include = "infrastructure", from = "src"},
-    {include = "presentation", from = "src"}
+requires-python = ">=3.11"
+dependencies = [
+    "langchain>=1.0.0",
+    "langchain-openai>=0.3.0",
+    "langchain-community>=0.4.0",
+    "langgraph>=1.0.0",
+    "pydantic>=2.0.0",
+    "pydantic-settings>=2.0.0",
+    "typing-extensions>=4.8.0",
+    "python-dotenv>=1.0.0",
+    "gradio>=6.0.0",
+    "workspace-mcp>=1.5.5",
+    "langchain-mcp-adapters>=0.1.14",
+    "asyncio>=4.0.0",
 ]
 
-[tool.poetry.dependencies]
-python = "^3.11"
-langchain = "^1.0.0"
-langchain-openai = "^0.3.0"
-langchain-community = "^0.4.0"
-langgraph = "^1.0.0"
-pydantic = "^2.0.0"
-pydantic-settings = "^2.0.0"
-typing-extensions = "^4.8.0"
-python-dotenv = "^1.0.0"
+[project.optional-dependencies]
+visualization = [
+    "graphviz>=0.20.0",
+    "pillow>=10.0.0",
+    "ipython>=8.0.0",
+]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.23.0",
+    "pytest-cov>=4.1.0",
+    "black>=24.0.0",
+    "ruff>=0.1.0",
+    "mypy>=1.8.0",
+    "jupyter>=1.0.0",
+    "ipykernel>=6.29.0",
+]
 
-# Optional visualization dependencies
-graphviz = {version = "^0.20.0", optional = true}
-pillow = {version = "^10.0.0", optional = true}
-ipython = {version = "^8.0.0", optional = true}
-gradio = "^6.0.0"
+[tool.setuptools]
+packages = ["application", "domain", "infrastructure", "presentation"]
 
-[tool.poetry.group.dev.dependencies]
-pytest = "^8.0.0"
-pytest-asyncio = "^0.23.0"
-pytest-cov = "^4.1.0"
-black = "^24.0.0"
-ruff = "^0.1.0"
-mypy = "^1.8.0"
-jupyter = "^1.0.0"
-ipykernel = "^6.29.0"
-
-[tool.poetry.extras]
-visualization = ["graphviz", "pillow", "ipython"]
-
-[tool.poetry.scripts]
+[tool.setuptools.package-dir]
+application = "src/application"
+domain = "src/domain"
+infrastructure = "src/infrastructure"
+presentation = "src/presentation"
 
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
 
 [tool.black]
 line-length = 100
@@ -61,4 +66,3 @@ python_version = "3.11"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = false
-

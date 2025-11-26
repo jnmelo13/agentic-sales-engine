@@ -34,6 +34,3 @@ def create_orchestrator_node(llm: ChatOpenAI):
 
     return node
 
-
-orchestrator_node = None  # Will be set when LLM is available
-

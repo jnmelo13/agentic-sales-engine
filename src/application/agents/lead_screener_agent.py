@@ -30,5 +30,5 @@ def triage(state: State) -> dict:
     }
 
 
-lead_collector_node = triage
+lead_screener_node = triage
 

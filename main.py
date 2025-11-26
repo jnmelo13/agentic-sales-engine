@@ -1,4 +1,5 @@
 import gradio as gr
+import asyncio
 from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI
 
@@ -8,7 +9,7 @@ from src.application.graphs.b2b_workflow import build_graph
 load_dotenv(override=True)
 
 llm = ChatOpenAI(model="gpt-4o-mini")
-graph = build_graph(llm)
+graph = asyncio.run(build_graph(llm))
 
 
 def chat(message, history):

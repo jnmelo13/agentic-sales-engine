@@ -34,6 +34,3 @@ def create_summary_node(llm: ChatOpenAI):
 
     return node
 
-
-summary_node = None  # Will be set when LLM is available
-
