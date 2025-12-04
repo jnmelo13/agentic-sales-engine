@@ -46,6 +46,8 @@ steps:
       - '$_TIMEOUT'
       - '--update-secrets'
       - '/secrets/env=b2b-agent-env:latest'
+      - '--service-account'
+      - 'cloudbuild-trigger-sa@agentic-sales-engine-project.iam.gserviceaccount.com'
 
     id: 'deploy-cloud-run'
 
