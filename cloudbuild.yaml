@@ -45,7 +45,8 @@ steps:
       - '--timeout'
       - '$_TIMEOUT'
       - '--update-secrets'
-      - '/env=b2b-agent-env:latest'
+      - '/secrets/env=b2b-agent-env:latest'
+
     id: 'deploy-cloud-run'
 
 # Substitution variables (can be overridden)
