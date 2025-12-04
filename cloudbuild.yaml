@@ -35,15 +35,16 @@ steps:
       - '--port'
       - '7860'
       - '--memory'
-      - '${_MEMORY:-2Gi}'
+      - '$_MEMORY'
       - '--cpu'
-      - '${_CPU:-2}'
+      - '$_CPU'
       - '--min-instances'
-      - '${_MIN_INSTANCES:-0}'
+      - '$_MIN_INSTANCES'
       - '--max-instances'
-      - '${_MAX_INSTANCES:-10}'
+      - '$_MAX_INSTANCES'
       - '--timeout'
-      - '${_TIMEOUT:-300}'
+      - '$_TIMEOUT'
+
     id: 'deploy-cloud-run'
 
 # Substitution variables (can be overridden)
