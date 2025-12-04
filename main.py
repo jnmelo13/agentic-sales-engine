@@ -1,5 +1,5 @@
+import os
 import gradio as gr
-import asyncio
 from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI
 
@@ -9,7 +9,7 @@ from src.application.graphs.b2b_workflow import build_graph
 load_dotenv(override=True)
 
 llm = ChatOpenAI(model="gpt-4o-mini")
-graph = asyncio.run(build_graph(llm))
+graph = build_graph(llm)
 
 
 def chat(message, history):
@@ -24,11 +24,13 @@ def chat(message, history):
 
 def main():
     """Main entry point for CLI."""
+    # Cloud Run sets PORT, fallback to APP_PORT for local development
+    port = int(os.getenv("PORT", os.getenv("APP_PORT", 7860)))
     gr.ChatInterface(
         chat,
         title="B2B Lead Generation Assistant",
         description="Ask me to find and qualify B2B leads!",
-    ).launch()
+    ).launch(server_name="0.0.0.0", server_port=port)
 
 
 if __name__ == "__main__":

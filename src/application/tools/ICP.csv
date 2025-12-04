@@ -1,0 +1,10 @@
+Parameter,Value
+industries_allowed,SaaS B2B; Healthcare Technology; Fintech; Logistics & Supply Chain; Professional Services; Energy & Utilities
+industries_blocked,Ecommerce B2C; Retail Fashion; Agriculture; Education K-12
+employee_min,50
+employee_max,5000
+regions_allowed,Brazil; Mexico; United States; Canada
+regions_blocked,India; Pakistan; Russia; Bangladesh; Southeast Asia
+technologies_required,AWS; GCP; Azure; Snowflake; Databricks; PostgreSQL
+buyer_personas,CTO; Head of Data; Head of Engineering; VP of Product; Director of Automation; Operations Manager
+excluded_personas,HR Manager; Legal Director; CFO; Marketing Manager

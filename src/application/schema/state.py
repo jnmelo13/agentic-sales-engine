@@ -1,8 +1,9 @@
-from typing import Annotated, Any
+from typing import Annotated, Any, Optional
 
 from langgraph.graph.message import add_messages
 from pydantic import BaseModel, field_validator
 
+from .icp import IdealCustomerProfile
 from .lead import Lead
 
 
@@ -13,6 +14,7 @@ class State(BaseModel):
     leads: list[Lead] = []
     filtered_leads: list[Lead] = []
     next_action: str = ""
+    icp: Optional[IdealCustomerProfile] = None  # Store ICP data
 
     @field_validator("leads", "filtered_leads", mode="before")
     @classmethod

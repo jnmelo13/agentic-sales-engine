@@ -15,4 +15,4 @@ set_enabled_services(services)
 set_transport_mode('streamable-http')
 configure_server_for_http()
 
-server.run(transport="streamable-http", host=os.environ.get('app_port', "localhost"), port=os.environ.get('app_port', 8001))
+server.run(transport="streamable-http", host=os.getenv('APP_HOSTNAME', 'localhost'), port=int(os.getenv('APP_PORT', 8001)))
