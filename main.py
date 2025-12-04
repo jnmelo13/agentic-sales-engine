@@ -6,7 +6,7 @@ from langchain_openai import ChatOpenAI
 from src.application.schema.state import State
 from src.application.graphs.b2b_workflow import build_graph
 
-load_dotenv(override=True)
+load_dotenv("/secrets/env",override=True)
 
 llm = ChatOpenAI(model="gpt-4o-mini")
 graph = build_graph(llm)
