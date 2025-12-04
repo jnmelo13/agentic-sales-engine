@@ -11,7 +11,6 @@ load_dotenv(override=True)
 llm = ChatOpenAI(model="gpt-4o-mini")
 graph = build_graph(llm)
 
-
 def chat(message, history):
     """Chat interface handler."""
     state = State(messages=[{"role": "user", "content": message}])
