@@ -1,10 +1,9 @@
-from langchain_community.utilities import GoogleSerperAPIWrapper
 from langchain_core.tools import Tool
+from ..services.search_service import WebSearchService
 
 
-def create_search_tool() -> Tool:
+def create_search_tool(search_service: WebSearchService) -> Tool:
     """Create search tool for company information."""
-    serper_search = GoogleSerperAPIWrapper()
 
     return Tool(
         name="search_company_info",
@@ -13,6 +12,6 @@ def create_search_tool() -> Tool:
             "technologies used, partnerships, and business updates. "
             "Use this when you need more context about a lead company."
         ),
-        func=serper_search.run,
+        func=search_service.search,
     )
 

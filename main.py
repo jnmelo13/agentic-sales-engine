@@ -2,14 +2,14 @@ import os
 import gradio as gr
 from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI
-
+from langgraph.graph import StateGraph
 from src.application.schema.state import State
-from src.application.graphs.b2b_workflow import build_graph
+from src.application.graphs.builder import build_graph
 
 llm = None
 graph = None
 
-def get_graph():
+def get_graph() -> StateGraph:
     """Lazily initialize LLM and Graph only on first request."""
     global llm, graph
     if graph is None:
@@ -27,7 +27,7 @@ def chat(message, history):
 
 def main():
     """Main entry point for Cloud Run / local execution."""
-    load_dotenv("/secrets/env", override=True)
+    load_dotenv(override=True)
 
     port = int(os.getenv("PORT", os.getenv("APP_PORT", 7860)))
 

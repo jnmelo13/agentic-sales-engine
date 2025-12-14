@@ -1,2 +1,14 @@
-# TODO
+version: '0.1.0'
 
+services:
+  b2b_agent:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ./src:/app/src
+      - ./main.py:/app/main.py
+    ports:
+      - "7860:7860"
+    environment:
+      - PORT=7860
