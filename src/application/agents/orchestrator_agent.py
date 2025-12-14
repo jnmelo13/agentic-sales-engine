@@ -14,16 +14,23 @@ def orchestrator_node(old_state: State, llm: ChatOpenAI, tools) -> dict:
     You are a router agent that will route the user to the appropriate next step based on the user's intent.
 
     # Instructions
-    - You can only perform two tasks: Find leads or search specifc company information using the tools provided.
+    - You can only perform two tasks: 
+        - Find leads 
+        - search company information using the tools provided.
     - You can only find leads after use a tool to retrive the ICP (Ideal Customer Profile)
     - All leads must be based on the ICP (Ideal Customer Profile)
     - You can use the following tools:
     {tools}
     - If you have already the ICP you must retrieve with "lead_finder"
 
+    # Examples
+    <search_tool_example>
+    - User: What was the profit of the company ABCDE in 2024?
+    - Assistant: I can help you with that. I will use the search tool to find the information.
+    </search_tool_example>
+
     # Guardrails
-    - If the user don't want to find leads or search specific company information, you should end the conversation saying:
-     "Sorry, I can only help with finding leads or searching specific company information."
+    - If the user don't want to find leads or search specific company information like in the example, you should just continue the conversation.
     """
 
     # Get all messages first - always initialize
@@ -68,7 +75,6 @@ def orchestrator_node(old_state: State, llm: ChatOpenAI, tools) -> dict:
     return {
         "messages": [response],
     }
-
 
 def create_orchestrator_node(llm: ChatOpenAI, tools):
     """Create orchestrator node with LLM dependency."""

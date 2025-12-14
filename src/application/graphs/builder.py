@@ -8,7 +8,7 @@ from ..tools.retrieve_icp_tool import retrieve_icp_tool
 from ..services.search_service import WebSearchService
 import os
 
-def build_graph(llm: ChatOpenAI | None = None) -> StateGraph:
+def build_graph(llm: ChatOpenAI | None = None, memory_saver = None) -> StateGraph:
     """Build the B2B workflow graph."""
     if llm is None:
         llm = ChatOpenAI(model="gpt-4o-mini")
@@ -27,7 +27,8 @@ def build_graph(llm: ChatOpenAI | None = None) -> StateGraph:
     register_nodes(graph_builder, llm, tools)
     register_edges(graph_builder)
 
-    final_graph = graph_builder.compile()
+    final_graph = graph_builder.compile(checkpointer=memory_saver)
+
     png_bytes = final_graph.get_graph().draw_mermaid_png()
     with open("graph_mermaid_diagram.png", "wb") as f:
         f.write(png_bytes)

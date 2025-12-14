@@ -1,6 +1,26 @@
-version: '0.1.0'
-
 services:
+
+  redis-database:
+    container_name: redis-database
+    hostname: redis-database
+    image: redis:8.0-rc1
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: [ "CMD-SHELL", "redis-cli ping | grep PONG" ]
+      interval: 10s
+      retries: 5
+      start_period: 5s
+      timeout: 5s
+    
+  redis-insight:
+    image: redis/redisinsight:latest
+    container_name: redis-insight
+    ports:
+    - "5540:5540"
+    depends_on:
+      - redis-database
+
   b2b_agent:
     build:
       context: .
@@ -8,6 +28,8 @@ services:
     volumes:
       - ./src:/app/src
       - ./main.py:/app/main.py
+    env_file:
+      - .env
     ports:
       - "7860:7860"
     environment:
