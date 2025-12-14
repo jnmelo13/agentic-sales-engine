@@ -1,7 +1,6 @@
 from typing import Optional
-
 from pydantic import BaseModel, Field
-
+from .contact import Contact
 
 class Lead(BaseModel):
     """Structured lead with enrichment fields."""
@@ -16,6 +15,7 @@ class Lead(BaseModel):
     last_year_profit: Optional[float] = None
     last_quarter_ebitda: Optional[float] = None
     stock_variation_3m: Optional[float] = None
+    contacts: Optional[list[Contact]] = None
 
     def needs_enrichment(self) -> bool:
         """Check if lead still needs enrichment."""
@@ -24,6 +24,7 @@ class Lead(BaseModel):
             or self.last_year_profit is None
             or self.last_quarter_ebitda is None
             or self.stock_variation_3m is None
+            or self.contacts is None
         )
 
 
@@ -44,4 +45,5 @@ class LeadCompleted(BaseModel):
     stock_variation_3m: float = Field(
         ..., description="Stock price variation over the last 3 months in percentage"
     )
+    contacts: list[Contact] = Field(default=[], description="Contact information of the company. Only include real contacts found in search results, leave empty if none found.")
 

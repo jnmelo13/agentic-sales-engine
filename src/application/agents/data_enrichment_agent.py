@@ -71,6 +71,27 @@ def update_lead(state: State, llm: ChatOpenAI) -> dict:
 
     Existing lead: {lead_to_update.model_dump_json()}
     Search results: {state.messages[-1].content}
+
+    CRITICAL RULES FOR CONTACTS:
+    1. ONLY include contacts that are EXPLICITLY mentioned in the search results with their actual names, emails, and phone numbers
+    2. If the search results do NOT contain specific contact information (names + emails + phone numbers), you MUST set contacts to an empty list []
+    3. DO NOT create, guess, or infer contact information
+    4. DO NOT use generic names like "John Doe", "Jane Smith", "John Smith", "Jane Doe"
+    5. DO NOT create email addresses by combining names with company domains
+    6. DO NOT create phone numbers
+    7. If you cannot find REAL, VERIFIABLE contact information in the search results, contacts must be []
+    
+    Examples of what NOT to do:
+    - If search results mention "CEO" but no name → DO NOT create a contact
+    - If search results mention a name but no email → DO NOT create a contact
+    - If search results mention a name and email but no phone → DO NOT create a contact
+    - If search results don't mention any executives → contacts = []
+    
+    Only create contacts if ALL of the following are in the search results:
+    - Full name of the person
+    - Email address
+    - Phone number
+    - Job title/position
     """
 
     enriched = extractor.invoke([{"role": "user", "content": prompt}])

@@ -31,6 +31,7 @@ def create_lead_finder_node(llm: ChatOpenAI, tools):
             - Find exactly 3 leads that match: industries, employee range, and regions from the ICP
             - Each lead must have: company name, industry, employee_count, and revenue_musd
             - Call tools to search for leads matching the ICP
+            - Always look for contacts in the search results. If no contacts are found, leave the contacts field empty.
             """
         )
 
