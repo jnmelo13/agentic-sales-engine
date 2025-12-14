@@ -7,22 +7,23 @@ from ..schema.icp import IdealCustomerProfile
 from ..schema.state import State
 
 
-def chatbot_node(old_state: State, llm: ChatOpenAI, tools) -> dict:
+def orchestrator_node(old_state: State, llm: ChatOpenAI, tools) -> dict:
     """Analyze user intent and route to appropriate workflow."""
 
     system_prompt = f"""
     You are a router agent that will route the user to the appropriate next step based on the user's intent.
 
     # Instructions
-    - You can only perform one task: Find leads 
+    - You can only perform two tasks: Find leads or search specifc company information using the tools provided.
     - You can only find leads after use a tool to retrive the ICP (Ideal Customer Profile)
     - All leads must be based on the ICP (Ideal Customer Profile)
-    - You can use the following tools to find the ICP (Ideal Customer Profile):
+    - You can use the following tools:
     {tools}
     - If you have already the ICP you must retrieve with "lead_finder"
 
     # Guardrails
-    - If the user don't want to find leads, you should end the conversation saying "Sorry, I can only help with finding leads."
+    - If the user don't want to find leads or search specific company information, you should end the conversation saying:
+     "Sorry, I can only help with finding leads or searching specific company information."
     """
 
     # Get all messages first - always initialize
@@ -73,7 +74,7 @@ def create_orchestrator_node(llm: ChatOpenAI, tools):
     """Create orchestrator node with LLM dependency."""
 
     def node(state: State) -> dict:
-        return chatbot_node(state, llm, tools)
+        return orchestrator_node(state, llm, tools)
 
     return node
 

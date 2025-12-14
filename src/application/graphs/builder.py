@@ -18,13 +18,13 @@ def build_graph(llm: ChatOpenAI | None = None) -> StateGraph:
     # mcp_tools = await mcp_client.get_tools()
 
     # Non MCP tools
-    icp_tool = [retrieve_icp_tool(llm)]
-    tools = [create_search_tool(WebSearchService(api_key=os.getenv("SERPER_API_KEY")))]
-    tools_2 = [create_search_tool(WebSearchService(api_key=os.getenv("SERPER_API_KEY")))]
+    icp_tool = retrieve_icp_tool(llm)
+    search_tool = create_search_tool(WebSearchService(api_key=os.getenv("SERPER_API_KEY")))
+    tools = [icp_tool, search_tool]
 
     graph_builder = StateGraph(State)
 
-    register_nodes(graph_builder, llm, icp_tool, tools, tools_2)
+    register_nodes(graph_builder, llm, tools)
     register_edges(graph_builder)
 
     final_graph = graph_builder.compile()

@@ -1,7 +1,5 @@
 from langchain_openai import ChatOpenAI
-
 from ..schema.state import State
-
 
 def generate_summary(state: State, llm: ChatOpenAI) -> dict:
     """Generate natural language summary of results."""
