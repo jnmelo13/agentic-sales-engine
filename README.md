@@ -78,15 +78,22 @@ flowchart TB
     Start((START))
     EndNode((END))
 
-    Chatbot[chatbot]
-    OrchestratorTools[orchestrator_tools]
+    subgraph Workflow
+        Chatbot[chatbot]
+        OrchestratorTools[orchestrator_tools]
 
-    LeadFinder[lead_finder]
-    Screener[screener]
-    Enricher[enricher]
-    SearchTools[search_tools]
-    UpdateLead[update_lead]
-    Summary[summary]
+        LeadFinder[lead_finder]
+        Screener[screener]
+        Enricher[enricher]
+        SearchTools[search_tools]
+        UpdateLead[update_lead]
+        Summary[summary]
+    end
+
+    subgraph Persistence [Persistence & RAG (WIP)]
+        LeadStore[("Lead Vector DB<br/>(Qdrant)")]
+        SaveLeads[save_leads]
+    end
 
     Start --> Chatbot
 
@@ -110,7 +117,11 @@ flowchart TB
     UpdateLead -->|"should_continue: enricher"| Enricher
     UpdateLead -->|"should_continue: END"| Summary
 
-    Summary --> EndNode
+    Summary --> SaveLeads
+    SaveLeads --> LeadStore
+    LeadStore -.->|"RAG Retrieval".| Chatbot
+
+    SaveLeads --> EndNode
 ```
 
 ---
@@ -149,7 +160,138 @@ flowchart TB
 
 ### Run locally
 
-Install deps (using `uv` if you want to match Docker):
+#### 1) Set environment variables
 
+Create a `.env` file in the repo root (recommended) with at least:
+
+- `OPENAI_API_KEY`
+- `SERPER_API_KEY`
+- `MEM0_API_KEY`
+- `REDIS_URI` (example: `redis://localhost:6379/0`)
+
+Optionally:
+
+- `APP_PORT` or `PORT` (defaults to `7860`)
+
+#### 2) Start dependencies (Redis)
+
+If you already have Redis running, skip this step.
+
+Using Docker (Redis only):
+
+```bash
+docker run --rm -p 6379:6379 redis:7
+```
+
+Or using the repo `docker-compose.yaml` (Redis + optional Qdrant + optional RedisInsight):
+
+```bash
+docker compose up -d redis-database
+```
+
+#### 3) Install dependencies
+
+Using `uv` (recommended; matches the Docker build):
+
+```bash
 uv sync
+```
+
+Or using `pip`:
+
+```bash
+pip install -e .
+```
+
+#### 4) Run the app
+
+```bash
 uv run python main.py
+```
+
+#### 5) Open the UI
+
+Open `http://localhost:7860` (or your configured `PORT`/`APP_PORT`).
+
+#### Troubleshooting
+
+- **`REDIS_URI is not set`**: add `REDIS_URI=redis://localhost:6379/0` to your `.env`.
+- **Redis connection errors**: confirm Redis is running and reachable from your environment.
+- **Search tool returns empty**: check `SERPER_API_KEY`.
+
+---
+
+## Docker
+
+A Dockerfile is included. It runs `python main.py` and exposes port 7860.
+
+```bash
+docker build -t b2b-agent .
+docker run -p 7860:7860 --env-file .env b2b-agent
+```
+
+---
+
+## Work in progress (planned features)
+
+The items below are intentionally written as if they exist, but are marked as **Work in progress**.
+
+- **Security Guardrails (Work in progress)**
+  - Centralized input validation, prompt injection resistance, and tool-usage constraints.
+  - Stronger “allowed actions” enforcement across agents (not only via prompts).
+
+- **Prompt versioning and prompt storage (Work in progress)**
+  - Versioned prompts per agent in `src/application/prompts/`
+  - Change history and release process (e.g., semantic versioning for prompt templates)
+  - Prompt evaluation snapshots tied to versions
+
+- **Agentic RAG over qualified leads and past interactions (Work in progress)**
+  - Persist qualified/enriched leads into a vector database (e.g., Qdrant)
+  - Provide a `search_leads` tool so users can query the existing lead knowledge base:
+    - “Show me fintech leads we already found”
+    - “Which leads have revenue > $10M?”
+  - Use retrieval in orchestration to avoid duplicate enrichment and improve answers
+
+- **Evals & quality gates (Work in progress)**
+  - Offline evals for:
+    - Lead relevance to ICP
+    - Enrichment accuracy (no hallucinated contacts)
+    - Routing correctness (company info vs lead gen)
+  - Regression suite tied to prompt versions and tool changes
+
+- **Observability & metrics (Work in progress)**
+  - Tracing per node/tool call
+  - Latency, token usage, tool call counts, failure rates
+  - Export to a metrics backend and add dashboards under `docs/metrics/`
+
+- **MCP (Model Context Protocol) integrations (Work in progress)**
+  - Use MCP servers for first-class integrations (e.g., Google Workspace, CRMs)
+  - Standardize external tool interfaces and auth/scopes
+
+---
+
+## Repo structure
+
+- `main.py`: composition root + Gradio launcher
+- `src/application/`: graph, agents, tools, schemas
+- `src/domain/`: routing/conditions
+- `src/infrastructure/`: external services and clients (Redis, Mem0, Serper, etc.)
+- `src/presentation/`: UI layer (Gradio)
+- `docs/`: architecture, prompts, metrics documentation (WIP)
+- `tests/`: test scaffolding (WIP)
+
+---
+
+## Contributing / Roadmap
+
+If you want to contribute, the most valuable additions are:
+- E2E tests around routing + tool calls
+- Prompt versioning structure under `src/application/prompts/`
+- Lead storage + retrieval (Agentic RAG) using Qdrant
+- Observability (structured logging + tracing)
+
+---
+
+## Disclaimer
+
+This project uses LLMs and external tools. Treat outputs as **assistance**, not ground truth. Always verify critical business data.
