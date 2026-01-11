@@ -1,15 +1,18 @@
 import os
-import uuid
+
 from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI
-from langgraph.checkpoint.redis import RedisSaver
-import gradio as gr
+
 from src.application.graphs.builder import build_graph
+from src.application.services.chat_service import ChatService
 from src.infrastructure.memory.long_term.mem0.mem0_client import Mem0Service
+from src.infrastructure.memory.short_term.redis.redis_saver import get_redis_checkpointer
+from src.presentation.api.gradio_app import GradioApp
 
 DEFAULT_USER_ID = "10"
 
-def main():
+
+def main() -> None:
     """Main entry point for Cloud Run / local execution."""
     load_dotenv(override=True)
 
@@ -19,57 +22,17 @@ def main():
     if not redis_uri:
         raise RuntimeError("REDIS_URI is not set")
 
-    with RedisSaver.from_conn_string(redis_uri) as checkpointer:
+    with get_redis_checkpointer(redis_uri) as checkpointer:
         checkpointer.setup()
 
         mem0_service = Mem0Service()
-
         llm = ChatOpenAI(model="gpt-4o-mini")
-        graph = build_graph(llm, checkpointer,mem0_service, DEFAULT_USER_ID)
+        graph = build_graph(llm, checkpointer, mem0_service, DEFAULT_USER_ID)
 
-        def chat(message, history, thread_id):
-            """Chat interface handler."""
-            
-            current_thread = thread_id if thread_id else str(uuid.uuid4())
-            
-            config = {
-                "configurable": {
-                    "thread_id": current_thread, 
-                    "user_id": DEFAULT_USER_ID,
-                }
-            }
-            
-            state = {"messages": [{"role": "user", "content": message}]}
-            
-            result = graph.invoke(state, config=config)
-            response_content = result["messages"][-1].content
-            
-            # Save to long-term memory
-            mem0_service.add_memory(
-                messages=[
-                    {"role": "user", "content": message},
-                    {"role": "assistant", "content": response_content}
-                ],
-                user_id=DEFAULT_USER_ID
-            )
-            
-            return response_content
+        chat_service = ChatService(graph, mem0_service, DEFAULT_USER_ID)
+        app = GradioApp(chat_service)
+        app.launch(host="0.0.0.0", port=port)
 
-        gr.ChatInterface(
-            fn=chat,
-            title="B2B Lead Generation Assistant",
-            description="Ask me to find and qualify B2B leads!",
-            additional_inputs=[
-                gr.Textbox(
-                    label="Thread ID", 
-                    value=lambda: str(uuid.uuid4()),
-                    interactive=True
-                )
-            ]
-        ).launch(
-            server_name="0.0.0.0",
-            server_port=port,
-        )
 
 if __name__ == "__main__":
     main()
