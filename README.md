@@ -90,7 +90,7 @@ flowchart TB
         Summary[summary]
     end
 
-    subgraph Persistence [Persistence & RAG (WIP)]
+    subgraph Persistence ["Persistence & RAG (WIP)"]
         LeadStore[("Lead Vector DB<br/>(Qdrant)")]
         SaveLeads[save_leads]
     end
@@ -267,28 +267,6 @@ The items below are intentionally written as if they exist, but are marked as **
 - **MCP (Model Context Protocol) integrations (Work in progress)**
   - Use MCP servers for first-class integrations (e.g., Google Workspace, CRMs)
   - Standardize external tool interfaces and auth/scopes
-
----
-
-## Repo structure
-
-- `main.py`: composition root + Gradio launcher
-- `src/application/`: graph, agents, tools, schemas
-- `src/domain/`: routing/conditions
-- `src/infrastructure/`: external services and clients (Redis, Mem0, Serper, etc.)
-- `src/presentation/`: UI layer (Gradio)
-- `docs/`: architecture, prompts, metrics documentation (WIP)
-- `tests/`: test scaffolding (WIP)
-
----
-
-## Contributing / Roadmap
-
-If you want to contribute, the most valuable additions are:
-- E2E tests around routing + tool calls
-- Prompt versioning structure under `src/application/prompts/`
-- Lead storage + retrieval (Agentic RAG) using Qdrant
-- Observability (structured logging + tracing)
 
 ---
 
