@@ -24,7 +24,7 @@ def build_graph(llm: ChatOpenAI | None = None, memory_saver = None, mem0_service
     icp_tool = retrieve_icp_tool(llm)
     search_tool = create_search_tool(WebSearchService(api_key=os.getenv("SERPER_API_KEY")))
     search_memories_tool = create_search_memories_tool(mem0_service, user_id)
-    update_memories_tool = create_update_memories_tool(mem0_service, user_id)
+    update_memories_tool = create_update_memories_tool(mem0_service)
     tools = [icp_tool, search_tool, search_memories_tool, update_memories_tool]
 
     graph_builder = StateGraph(State)
