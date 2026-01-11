@@ -53,6 +53,7 @@ def enrich_leads(
 
     return {
         "messages": [response],
+        "tool_caller": "enricher",  # Track caller for routing back from tools
     }
 
 

@@ -23,11 +23,15 @@ def build_graph(llm: ChatOpenAI | None = None, memory_saver = None, mem0_service
     icp_tool = retrieve_icp_tool(llm)
     search_tool = create_search_tool(WebSearchService(api_key=os.getenv("SERPER_API_KEY")))
     search_memories_tool = create_search_memories_tool(mem0_service, user_id)
-    tools = [icp_tool, search_tool, search_memories_tool]
+
+    # Scoped tools by agent responsibility
+    # Orchestrator needs search_tool for simple company queries
+    orchestrator_tools = [icp_tool, search_memories_tool, search_tool]
+    search_tools = [search_tool]
 
     graph_builder = StateGraph(State)
 
-    register_nodes(graph_builder, llm, tools)
+    register_nodes(graph_builder, llm, orchestrator_tools, search_tools)
     register_edges(graph_builder)
 
     final_graph = graph_builder.compile(checkpointer=memory_saver)

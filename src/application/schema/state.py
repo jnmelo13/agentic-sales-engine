@@ -15,6 +15,7 @@ class State(BaseModel):
     filtered_leads: list[Lead] = []
     next_action: str = ""
     icp: Optional[IdealCustomerProfile] = None
+    tool_caller: str = ""  # Track which agent called tools for routing back
 
     @field_validator("leads", "filtered_leads", mode="before")
     @classmethod

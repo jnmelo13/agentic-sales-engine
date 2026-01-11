@@ -81,6 +81,7 @@ def create_lead_finder_node(llm: ChatOpenAI, tools):
 
         return {
             "messages": [response],
+            "tool_caller": "lead_finder",  # Track caller for routing back from tools
         }
 
     return node
