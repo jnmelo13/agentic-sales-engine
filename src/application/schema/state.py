@@ -14,7 +14,7 @@ class State(BaseModel):
     leads: list[Lead] = []
     filtered_leads: list[Lead] = []
     next_action: str = ""
-    icp: Optional[IdealCustomerProfile] = None  # Store ICP data
+    icp: Optional[IdealCustomerProfile] = None
 
     @field_validator("leads", "filtered_leads", mode="before")
     @classmethod

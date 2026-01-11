@@ -7,8 +7,11 @@ from ..graphs.edges import register_edges
 from ..tools.retrieve_icp_tool import retrieve_icp_tool
 from ..services.search_service import WebSearchService
 import os
+from ...infrastructure.memory.long_term.mem0.mem0_client import Mem0Service
+from ..tools.search_memories_tool import create_search_memories_tool
+from ..tools.update_memories_tool import create_update_memories_tool
 
-def build_graph(llm: ChatOpenAI | None = None, memory_saver = None) -> StateGraph:
+def build_graph(llm: ChatOpenAI | None = None, memory_saver = None, mem0_service: Mem0Service = None, user_id: str = None) -> StateGraph:
     """Build the B2B workflow graph."""
     if llm is None:
         llm = ChatOpenAI(model="gpt-4o-mini")
@@ -20,7 +23,9 @@ def build_graph(llm: ChatOpenAI | None = None, memory_saver = None) -> StateGrap
     # Non MCP tools
     icp_tool = retrieve_icp_tool(llm)
     search_tool = create_search_tool(WebSearchService(api_key=os.getenv("SERPER_API_KEY")))
-    tools = [icp_tool, search_tool]
+    search_memories_tool = create_search_memories_tool(mem0_service, user_id)
+    update_memories_tool = create_update_memories_tool(mem0_service, user_id)
+    tools = [icp_tool, search_tool, search_memories_tool, update_memories_tool]
 
     graph_builder = StateGraph(State)
 

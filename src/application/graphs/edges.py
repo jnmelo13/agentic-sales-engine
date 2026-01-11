@@ -3,7 +3,8 @@ from langgraph.prebuilt import tools_condition
 from ...domain.conditions.routing import chatbot_router
 from ...domain.conditions.enrichment_checker import should_continue
 
-def register_edges(graph: StateGraph):
+def register_edges(graph: StateGraph)->None:
+    """Register the edges for the graph."""
 
     graph.add_edge(START, "chatbot")    
     graph.add_edge("tools", "chatbot")

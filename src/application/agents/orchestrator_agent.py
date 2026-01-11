@@ -39,30 +39,31 @@ def orchestrator_node(old_state: State, llm: ChatOpenAI, tools) -> dict:
 
     # If tool just executed, check if it's the ICP tool response
     if isinstance(last_message, ToolMessage):
-        # Handle ICP object directly (or dict if serialized)
-        content = last_message.content
+        if last_message.name == "retrieve_icp":
+            # Handle ICP object directly (or dict if serialized)
+            content = last_message.content
 
-        try:
-            icp_dict = json.loads(content)
-            icp = IdealCustomerProfile(**icp_dict)
+            try:
+                icp_dict = json.loads(content)
+                icp = IdealCustomerProfile(**icp_dict)
 
-            # Store ICP if we got it
-            if icp:
-                return {
-                    "icp": icp,
-                    "messages": [
-                        {"role": "assistant", "content": "ICP retrieved and stored successfully!"}
-                    ],
-                    "next_action": "lead_finder",
-                }
-        except (json.JSONDecodeError, ValueError) as e:
-            # If parsing fails, continue normal flow
-            pass
+                # Store ICP if we got it
+                if icp:
+                    return {
+                        "icp": icp,
+                        "messages": [
+                            {"role": "assistant", "content": "ICP retrieved and stored successfully!"}
+                        ],
+                        "next_action": "lead_finder",
+                    }
+            except (json.JSONDecodeError, ValueError) as e:
+                # If parsing fails, continue normal flow
+                pass
 
-        # For other tool responses, continue normal flow
-        # Add system message if needed
-        if not messages or not isinstance(messages[0], SystemMessage):
-            messages = [SystemMessage(content=system_prompt)] + messages
+            # For other tool responses, continue normal flow
+            # Add system message if needed
+            if not messages or not isinstance(messages[0], SystemMessage):
+                messages = [SystemMessage(content=system_prompt)] + messages
     else:
         # First call - add system message if needed
         if not messages or not isinstance(messages[0], SystemMessage):
