@@ -5,7 +5,7 @@ from ..schema.state import State
 from ..graphs.nodes import register_nodes
 from ..graphs.edges import register_edges
 from ..tools.retrieve_icp_tool import retrieve_icp_tool
-from ..services.search_service import WebSearchService
+from ...infrastructure.clients.search_service import WebSearchService
 import os
 from ...infrastructure.memory.long_term.mem0.mem0_client import Mem0Service
 from ..tools.search_memories_tool import create_search_memories_tool

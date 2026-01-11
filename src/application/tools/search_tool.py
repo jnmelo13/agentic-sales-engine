@@ -1,5 +1,5 @@
 from langchain_core.tools import Tool
-from ..services.search_service import WebSearchService
+from ...infrastructure.clients.search_service import WebSearchService
 
 
 def create_search_tool(search_service: WebSearchService) -> Tool:
