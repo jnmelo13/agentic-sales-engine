@@ -12,7 +12,9 @@ def register_edges(graph: StateGraph) -> None:
     graph.add_edge(START, "chatbot")
     graph.add_edge("orchestrator_tools", "chatbot")
     graph.add_edge("screener", "enricher")
+    graph.add_edge("enricher", "lead_storage")
     graph.add_edge("summary", END)
+    graph.add_edge("lead_storage", END)
 
     # Conditional edges from chatbot
     graph.add_conditional_edges(
