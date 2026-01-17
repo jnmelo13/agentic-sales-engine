@@ -44,6 +44,18 @@ services:
       - "7860:7860"
     environment:
       - PORT=7860
+      # QDrant Configuration
+      - QDRANT_HOST=qdrant
+      - QDRANT_PORT=6333
+      - QDRANT_GRPC_PORT=6334
+      - QDRANT_PREFER_GRPC=true
+      - QDRANT_HTTPS=false
+      - QDRANT_COLLECTION=leads
+      - QDRANT_TIMEOUT=10.0
+      - QDRANT_BATCH_SIZE=100
+    depends_on:
+      - qdrant
+      - redis-database
 
 volumes:
   qdrant_storage:

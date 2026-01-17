@@ -85,4 +85,3 @@ def create_lead_finder_node(llm: ChatOpenAI, tools):
         }
 
     return node
-
