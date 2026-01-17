@@ -7,7 +7,7 @@ from src.application.graphs.builder import build_graph
 from src.application.services.chat_service import ChatService
 from src.infrastructure.memory.long_term.mem0.mem0_client import Mem0Service
 from src.infrastructure.memory.short_term.redis.redis_saver import get_redis_checkpointer
-from src.presentation.api.gradio_app import GradioApp
+from src.presentation.gradio_app import GradioApp
 
 DEFAULT_USER_ID = "10"
 
