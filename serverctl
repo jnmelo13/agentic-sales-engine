@@ -1,0 +1,498 @@
+#!/bin/bash
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+BLUE='\033[0;36m'
+NC='\033[0m' # No Color
+
+# Function to print error and exit
+error_exit() {
+    echo -e "${RED}Error: $1${NC}" >&2
+    exit 1
+}
+
+# Function to print success
+success_msg() {
+    echo -e "${GREEN}$1${NC}"
+}
+
+# Function to print info
+info_msg() {
+    echo -e "${YELLOW}$1${NC}"
+}
+
+# Function to print header
+header_msg() {
+    echo -e "${BLUE}$1${NC}"
+}
+
+# Function to check if a command exists
+command_exists() {
+    command -v "$1" >/dev/null 2>&1
+}
+
+# Function to check if Docker is running
+check_docker() {
+    if ! command_exists docker; then
+        error_exit "Docker is not installed or not in PATH"
+    fi
+    
+    if ! docker info >/dev/null 2>&1; then
+        error_exit "Docker is not running. Please start Docker first."
+    fi
+}
+
+# Function to check if container is running
+check_container_running() {
+    local container_name="$1"
+    if ! docker ps | grep -q "$container_name"; then
+        return 1
+    fi
+    return 0
+}
+
+# Function to load .env file and export variables
+load_env() {
+    if [ -f .env ]; then
+        export $(grep -v '^[[:space:]]*#' .env | grep -v '^[[:space:]]*$' | grep '=' | xargs)
+    else
+        info_msg "Warning: .env file not found. Some features may not work correctly."
+    fi
+}
+
+# Function to perform health check
+health_check() {
+    local max_attempts=10
+    local attempt=1
+    local sleep_interval=2
+    local port="${PORT:-7860}"
+    
+    info_msg "Checking health endpoint..."
+    
+    while [ $attempt -le $max_attempts ]; do
+        if curl -s -f "http://localhost:${port}/" >/dev/null 2>&1; then
+            success_msg "B2B Agent is healthy! ✓"
+            return 0
+        fi
+        
+        if [ $attempt -lt $max_attempts ]; then
+            info_msg "Attempt $attempt/$max_attempts failed, retrying in ${sleep_interval}s..."
+            sleep $sleep_interval
+        fi
+        
+        ((attempt++))
+    done
+    
+    error_exit "Health check failed after $max_attempts attempts. Server may not be responding."
+}
+
+# Function to build the Docker image
+handle_docker_build() {
+    info_msg "Building Docker image..."
+    check_docker
+    docker compose build || error_exit "Failed to build Docker image"
+    success_msg "Docker image built successfully!"
+}
+
+# Function to rebuild with no cache
+rebuild() {
+    info_msg "Rebuilding Docker image with no cache..."
+    check_docker
+    docker compose build --no-cache || error_exit "Failed to rebuild Docker image"
+    success_msg "Docker image rebuilt successfully!"
+}
+
+# Function to start all services
+up() {
+    header_msg "Starting B2B Agent Services..."
+    check_docker
+    load_env
+    
+    info_msg "Starting infrastructure services (Redis, Qdrant, RedisInsight)..."
+    docker compose up -d redis-database qdrant redis-insight || error_exit "Failed to start infrastructure services"
+    
+    info_msg "Waiting for Redis to be ready..."
+    sleep 3
+    
+    info_msg "Building and starting B2B Agent..."
+    handle_docker_build
+    docker compose up -d b2b_agent || error_exit "Failed to start B2B Agent"
+    
+    sleep 3
+    health_check
+    
+    success_msg "B2B Agent is running!"
+    info_msg "Access points:"
+    echo "  - Gradio UI: http://localhost:${PORT:-7860}"
+    echo "  - RedisInsight: http://localhost:5540"
+    echo "  - Qdrant: http://localhost:6333"
+}
+
+# Function to start only infrastructure
+infra() {
+    header_msg "Starting Infrastructure Services..."
+    check_docker
+    
+    info_msg "Starting Redis, Qdrant, and RedisInsight..."
+    docker compose up -d redis-database qdrant redis-insight || error_exit "Failed to start infrastructure"
+    
+    success_msg "Infrastructure services started!"
+    info_msg "Access points:"
+    echo "  - Redis: localhost:6379"
+    echo "  - RedisInsight: http://localhost:5540"
+    echo "  - Qdrant: http://localhost:6333"
+}
+
+# Function to stop all services
+down() {
+    info_msg "Stopping B2B Agent Services..."
+    docker compose down >/dev/null 2>&1 || true
+    success_msg "All services stopped successfully"
+}
+
+# Function to check health only
+health() {
+    check_docker
+    load_env
+    
+    if ! check_container_running "b2b_agent"; then
+        error_exit "B2B Agent container is not running. Start it with: ./serverctl up"
+    fi
+    
+    health_check
+}
+
+# Function to view logs
+logs() {
+    check_docker
+    
+    local service="${1:-b2b_agent}"
+    local follow_flag=""
+    
+    if [ "$2" == "-f" ] || [ "$2" == "--follow" ]; then
+        follow_flag="-f"
+    fi
+    
+    info_msg "Showing logs for $service..."
+    docker compose logs $follow_flag "$service"
+}
+
+# Function to run tests
+test() {
+    info_msg "Running tests..."
+    
+    if ! check_container_running "b2b_agent"; then
+        error_exit "B2B Agent container is not running. Please start it with: ./serverctl up"
+    fi
+    
+    shift 
+    docker compose exec b2b_agent pytest -v "$@" || error_exit "Tests failed"
+    success_msg "All tests passed!"
+}
+
+# Function to run linting
+lint() {
+    if ! check_container_running "b2b_agent"; then
+        error_exit "B2B Agent container is not running. Please start it with: ./serverctl up"
+    fi
+    
+    if [ $# -eq 0 ]; then
+        info_msg "Running all linting checks..."
+        local failed_tasks=""
+        
+        info_msg "Running ruff lint check..."
+        if ! docker compose exec b2b_agent ruff check .; then
+            failed_tasks="ruff-check"
+        fi
+        
+        info_msg "Running mypy type checking..."
+        if ! docker compose exec b2b_agent mypy src/; then
+            if [ -n "$failed_tasks" ]; then
+                failed_tasks="$failed_tasks, mypy"
+            else
+                failed_tasks="mypy"
+            fi
+        fi
+        
+        if [ -n "$failed_tasks" ]; then
+            error_exit "Linting failed for: $failed_tasks"
+        fi
+        success_msg "All linting checks passed!"
+        return
+    fi
+    
+    local lint_cmd="$1"
+    
+    case "$lint_cmd" in
+        check)
+            info_msg "Running ruff lint check..."
+            docker compose exec b2b_agent ruff check . || error_exit "Lint check failed"
+            ;;
+        fix)
+            info_msg "Running ruff lint fix..."
+            docker compose exec b2b_agent ruff check --fix . || error_exit "Lint fix failed"
+            success_msg "Linting issues auto-fixed!"
+            ;;
+        mypy)
+            info_msg "Running mypy type checking..."
+            docker compose exec b2b_agent mypy src/ || error_exit "MyPy check failed"
+            ;;
+        *)
+            error_exit "Invalid lint command. Use 'check', 'fix', or 'mypy'"
+            ;;
+    esac
+}
+
+# Function to format code
+format() {
+    info_msg "Formatting code..."
+    
+    if ! check_container_running "b2b_agent"; then
+        error_exit "B2B Agent container is not running. Please start it with: ./serverctl up"
+    fi
+    
+    info_msg "Running black formatter..."
+    docker compose exec b2b_agent black src/ tests/ || error_exit "Black formatting failed"
+    
+    info_msg "Running ruff format..."
+    docker compose exec b2b_agent ruff format . || error_exit "Ruff formatting failed"
+    
+    success_msg "Code formatted successfully!"
+}
+
+# Function to open shell in container
+shell() {
+    check_docker
+    
+    if ! check_container_running "b2b_agent"; then
+        error_exit "B2B Agent container is not running. Please start it with: ./serverctl up"
+    fi
+    
+    info_msg "Opening shell in B2B Agent container..."
+    docker compose exec b2b_agent /bin/bash
+}
+
+# Function to run Python REPL with project context
+repl() {
+    check_docker
+    
+    if ! check_container_running "b2b_agent"; then
+        error_exit "B2B Agent container is not running. Please start it with: ./serverctl up"
+    fi
+    
+    info_msg "Starting Python REPL with project context..."
+    docker compose exec b2b_agent python -i -c "
+import os
+from dotenv import load_dotenv
+from langchain_openai import ChatOpenAI
+from src.application.graphs.builder import build_graph
+from src.infrastructure.memory.long_term.mem0.mem0_client import Mem0Service
+from src.infrastructure.memory.short_term.redis.redis_saver import get_redis_checkpointer
+
+load_dotenv(override=True)
+print('B2B Agent REPL - Modules loaded:')
+print('  - build_graph')
+print('  - Mem0Service')
+print('  - get_redis_checkpointer')
+print('  - ChatOpenAI')
+"
+}
+
+# Function to view Redis data
+redis_cli() {
+    check_docker
+    
+    if ! check_container_running "redis-database"; then
+        error_exit "Redis container is not running. Please start it with: ./serverctl infra or ./serverctl up"
+    fi
+    
+    info_msg "Opening Redis CLI..."
+    docker compose exec redis-database redis-cli
+}
+
+# Function to setup development environment
+setup() {
+    header_msg "Setting up B2B Agent Development Environment..."
+    
+    # Check Docker
+    if ! command_exists docker; then
+        error_exit "Docker is not installed. Please install Docker Desktop first."
+    fi
+    success_msg "Docker is installed ✓"
+    
+    # Check Docker Compose
+    if ! command_exists docker compose; then
+        error_exit "Docker Compose is not installed. Please install Docker Desktop with Docker Compose."
+    fi
+    success_msg "Docker Compose is installed ✓"
+    
+    # Setup .env file
+    if [ ! -f .env ]; then
+        if [ -f .env.example ]; then
+            cp .env.example .env || error_exit "Failed to create .env file"
+            success_msg "Created .env file from .env.example ✓"
+            info_msg "Please edit .env file and add your API keys"
+        else
+            info_msg "Creating basic .env file..."
+            cat > .env << EOL
+# B2B Agent Environment Configuration
+PORT=7860
+APP_PORT=7860
+REDIS_URI=redis://redis-database:6379
+OPENAI_API_KEY=your-api-key-here
+MEM0_API_KEY=your-mem0-key-here
+EOL
+            success_msg "Created basic .env file ✓"
+            info_msg "Please edit .env file and add your API keys"
+        fi
+    else
+        success_msg ".env file exists ✓"
+    fi
+    
+    # Build Docker images
+    info_msg "Building Docker images..."
+    check_docker
+    docker compose build || error_exit "Failed to build Docker images"
+    success_msg "Docker images built successfully ✓"
+    
+    success_msg "Setup complete! 🎉"
+    info_msg "Next steps:"
+    echo "  1. Edit .env file with your API keys"
+    echo "  2. Run './serverctl up' to start all services"
+    echo "  3. Access Gradio UI at http://localhost:7860"
+    echo ""
+    info_msg "Development workflow:"
+    echo "  - Use './serverctl up' to start all services"
+    echo "  - Use './serverctl test' to run tests"
+    echo "  - Use './serverctl lint' to check code quality"
+    echo "  - Use './serverctl format' to format code"
+    echo "  - Use './serverctl shell' to access container shell"
+    echo "  - Use './serverctl repl' for Python REPL with context"
+}
+
+# Function to show status of all services
+status() {
+    check_docker
+    
+    header_msg "B2B Agent Services Status:"
+    echo ""
+    
+    local services=("b2b_agent" "redis-database" "qdrant" "redis-insight")
+    
+    for service in "${services[@]}"; do
+        if check_container_running "$service"; then
+            echo -e "  ${GREEN}●${NC} $service - Running"
+        else
+            echo -e "  ${RED}●${NC} $service - Stopped"
+        fi
+    done
+    
+    echo ""
+    load_env
+    info_msg "Access points:"
+    echo "  - Gradio UI: http://localhost:${PORT:-7860}"
+    echo "  - RedisInsight: http://localhost:5540"
+    echo "  - Qdrant: http://localhost:6333"
+}
+
+# Function to show usage
+show_usage() {
+    cat << EOF
+Usage: ./serverctl [command] [options]
+
+B2B Agent Control Script - Manage your B2B Lead Generation Agent
+
+Commands:
+  setup              Setup development environment (Python, dependencies)
+  up                 Start all services (infrastructure + agent)
+  infra              Start only infrastructure services (Redis, Qdrant)
+  down               Stop all services
+  rebuild            Rebuild Docker image with no cache
+  status             Show status of all services
+  health             Check if the agent is healthy
+  logs [service]     View logs (default: b2b_agent, use -f to follow)
+  
+  Development:
+  shell              Open bash shell in agent container
+  repl               Open Python REPL with project context loaded
+  test [args]        Run pytest tests
+  lint [cmd]         Run linting checks
+                       (no args) - Run all checks
+                       check     - Run ruff check
+                       fix       - Auto-fix issues
+                       mypy      - Run type checking
+  format             Format code with black and ruff
+  
+  Utilities:
+  redis-cli          Open Redis CLI
+  clean              Clean up Docker resources and volumes
+  help               Show this help message
+
+Examples:
+  ./serverctl setup              # Setup development environment
+  ./serverctl up                 # Start all services
+  ./serverctl infra              # Start only Redis, Qdrant, RedisInsight
+  ./serverctl logs b2b_agent -f  # Follow agent logs
+  ./serverctl test               # Run all tests
+  ./serverctl lint fix           # Auto-fix linting issues
+EOF
+}
+
+# Main script logic
+case "$1" in
+    setup)
+        setup
+        ;;
+    up)
+        up
+        ;;
+    infra)
+        infra
+        ;;
+    down)
+        down
+        ;;
+    rebuild)
+        rebuild
+        ;;
+    health)
+        health
+        ;;
+    logs)
+        shift
+        logs "$@"
+        ;;
+    test)
+        test "$@"
+        ;;
+    lint)
+        shift
+        lint "$@"
+        ;;
+    format)
+        format
+        ;;
+    shell)
+        shell
+        ;;
+    repl)
+        repl
+        ;;
+    redis-cli)
+        redis_cli
+        ;;
+    status)
+        status
+        ;;
+    help|--help|-h)
+        show_usage
+        ;;
+    "")
+        show_usage
+        ;;
+    *)
+        error_exit "Unknown command: $1. Use './serverctl help' for usage information."
+        ;;
+esac
