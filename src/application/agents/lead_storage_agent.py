@@ -1,32 +1,15 @@
 import asyncio
-from ..schema.lead import Lead
 from ..schema.state import State
-from ...infrastructure.knowledge_base.vectordb.config import VectorDBSettings
 from ...infrastructure.knowledge_base.vectordb.lead_storage import QDrantLeadStorage
-from ...infrastructure.knowledge_base.vectordb.embedding_service import LeadEmbeddingService
 
 
-def create_lead_storage_node():
+def create_lead_storage_node(lead_storage: QDrantLeadStorage):
     """Returns a sync node that runs async Qdrant operations."""
 
-    def node(state: State) -> dict:  # Sync function
+    def node(state: State) -> dict:
         """Process leads and store them in vector database."""
         
-        # Define async logic
         async def store_leads_async():
-            # Initialize services
-            settings = VectorDBSettings(
-                host="localhost",
-                port=6333,
-                collection_name="leads-collection",
-                distance_metric="Cosine",
-                vector_size=64,
-                timeout=10
-            )
-            
-            embedding_service = LeadEmbeddingService()
-            lead_storage = QDrantLeadStorage(settings, embedding_service)
-            
             leads = state.leads
             for lead in leads:
                 print(f"Storing lead: {lead}")

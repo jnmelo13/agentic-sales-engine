@@ -274,32 +274,6 @@ shell() {
     docker compose exec b2b_agent /bin/bash
 }
 
-# Function to run Python REPL with project context
-repl() {
-    check_docker
-    
-    if ! check_container_running "b2b_agent"; then
-        error_exit "B2B Agent container is not running. Please start it with: ./serverctl up"
-    fi
-    
-    info_msg "Starting Python REPL with project context..."
-    docker compose exec b2b_agent python -i -c "
-import os
-from dotenv import load_dotenv
-from langchain_openai import ChatOpenAI
-from src.application.graphs.builder import build_graph
-from src.infrastructure.memory.long_term.mem0.mem0_client import Mem0Service
-from src.infrastructure.memory.short_term.redis.redis_saver import get_redis_checkpointer
-
-load_dotenv(override=True)
-print('B2B Agent REPL - Modules loaded:')
-print('  - build_graph')
-print('  - Mem0Service')
-print('  - get_redis_checkpointer')
-print('  - ChatOpenAI')
-"
-}
-
 # Function to view Redis data
 redis_cli() {
     check_docker
@@ -369,7 +343,6 @@ EOL
     echo "  - Use './serverctl lint' to check code quality"
     echo "  - Use './serverctl format' to format code"
     echo "  - Use './serverctl shell' to access container shell"
-    echo "  - Use './serverctl repl' for Python REPL with context"
 }
 
 # Function to show status of all services
@@ -416,7 +389,6 @@ Commands:
   
   Development:
   shell              Open bash shell in agent container
-  repl               Open Python REPL with project context loaded
   test [args]        Run pytest tests
   lint [cmd]         Run linting checks
                        (no args) - Run all checks
@@ -476,9 +448,6 @@ case "$1" in
         ;;
     shell)
         shell
-        ;;
-    repl)
-        repl
         ;;
     redis-cli)
         redis_cli

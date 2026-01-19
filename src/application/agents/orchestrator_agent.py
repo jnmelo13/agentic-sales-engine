@@ -14,23 +14,45 @@ def orchestrator_node(old_state: State, llm: ChatOpenAI, tools) -> dict:
     You are a router agent that will route the user to the appropriate next step based on the user's intent.
 
     # Instructions
-    - You can only perform two tasks: 
-        - Find leads 
-        - search company information using the tools provided.
-    - You can only find leads after use a tool to retrive the ICP (Ideal Customer Profile)
-    - All leads must be based on the ICP (Ideal Customer Profile)
+    - You can perform three main tasks: 
+        1. Find NEW leads (requires ICP retrieval first)
+        2. Search company information using web search
+        3. Search EXISTING leads in the database
+    - To find NEW leads, you must first retrieve the ICP (Ideal Customer Profile) using retrieve_icp tool
+    - All new leads must be based on the ICP (Ideal Customer Profile)
+    - To search EXISTING leads in the database, use the search_leads tool with a text query
     - You can use the following tools:
     {tools}
-    - If you have already the ICP you must retrieve with "lead_finder"
+    - If you have already the ICP you must route to "lead_finder"
 
     # Examples
-    <search_tool_example>
+    <search_company_info_example>
     - User: What was the profit of the company ABCDE in 2024?
-    - Assistant: I can help you with that. I will use the search tool to find the information.
-    </search_tool_example>
+    - Assistant: I can help you with that. I will use the search_company_info tool to find the information.
+    </search_company_info_example>
+
+    <search_leads_example>
+    - User: Do we have any fintech leads in the database?
+    - Assistant: Let me search our database for fintech companies. [Uses search_leads tool with query "fintech companies"]
+    </search_leads_example>
+
+    <search_leads_example>
+    - User: Show me software companies
+    - Assistant: I'll search our stored leads for software companies. [Uses search_leads tool with query "software companies"]
+    </search_leads_example>
+
+    <find_new_leads_example>
+    - User: Find me new leads
+    - Assistant: I'll retrieve the ICP first. [Uses retrieve_icp tool, then routes to lead_finder]
+    </find_new_leads_example>
 
     # Guardrails
-    - If the user don't want to find leads or search specific company information like in the example, you should just continue the conversation.
+    - If the user asks about EXISTING/STORED/CURRENT leads in the database, use search_leads tool
+    - If the user asks to FIND NEW leads, use retrieve_icp then route to lead_finder
+    - If the user asks about a specific company's information, use search_company_info tool
+    - If the user doesn't want any of these, just continue the conversation
+    - Keywords for search_leads: "do we have", "show me", "existing", "stored", "current", "in the database"
+    - Keywords for find new leads: "find new", "generate leads", "discover leads"
     """
 
     # Get all messages first - always initialize
@@ -60,18 +82,13 @@ def orchestrator_node(old_state: State, llm: ChatOpenAI, tools) -> dict:
                 # If parsing fails, continue normal flow
                 pass
 
-            # For other tool responses, continue normal flow
-            # Add system message if needed
-            if not messages or not isinstance(messages[0], SystemMessage):
-                messages = [SystemMessage(content=system_prompt)] + messages
-    else:
-        # First call - add system message if needed
-        if not messages or not isinstance(messages[0], SystemMessage):
-            messages = [SystemMessage(content=system_prompt)] + messages
+    # Filter the last 5 messages to not make the LLM confused
+    recent_messages = messages[-5:] if len(messages) > 5 else messages
+    routing_messages = [SystemMessage(content=system_prompt)] + recent_messages
 
     # Normal LLM invocation (messages is always defined at this point)
     llm_with_tools = llm.bind_tools(tools)
-    response = llm_with_tools.invoke(messages)
+    response = llm_with_tools.invoke(routing_messages)
 
     return {
         "messages": [response],

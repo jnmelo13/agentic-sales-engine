@@ -19,7 +19,7 @@ class VectorDBSettings:
     https: bool = os.getenv("QDRANT_HTTPS", "false").lower() == "true"
 
     # Collection settings
-    collection_name: str = os.getenv("QDRANT_COLLECTION", "leads")
+    collection_name: str = os.getenv("QDRANT_COLLECTION", "leads-collection")
     vector_size: int = 64
     distance_metric: str = "Cosine"
     
