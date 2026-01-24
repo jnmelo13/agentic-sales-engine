@@ -83,8 +83,11 @@ def orchestrator_node(old_state: State, llm: ChatOpenAI, tools) -> dict:
                 pass
 
     # Filter the last 5 messages to not make the LLM confused
-    recent_messages = messages[-5:] if len(messages) > 5 else messages
-    routing_messages = [SystemMessage(content=system_prompt)] + recent_messages
+    if isinstance(last_message, ToolMessage):
+        routing_messages = [SystemMessage(content=system_prompt)] + messages
+    else:
+        recent_messages = messages[-5:] if len(messages) > 5 else messages
+        routing_messages = [SystemMessage(content=system_prompt)] + recent_messages
 
     # Normal LLM invocation (messages is always defined at this point)
     llm_with_tools = llm.bind_tools(tools)

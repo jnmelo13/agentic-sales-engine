@@ -1,7 +1,8 @@
 from dataclasses import dataclass
 from typing import Optional
-from qdrant_client import QdrantClient
+
 from langchain_openai import ChatOpenAI
+from qdrant_client import QdrantClient
 import os
 
 from .knowledge_base.vectordb.config import VectorDBSettings
@@ -30,8 +31,17 @@ def create_dependencies(
     mem0_service: Optional[Mem0Service] = None,
     user_id: Optional[str] = None,
 ) -> AppDependencies:
-    """Create all application dependencies with proper configuration."""
+    """Create all application dependencies with proper configuration.
     
+    Args:
+        llm: Language model instance. Defaults to gpt-4o-mini.
+        memory_saver: Checkpointer for conversation memory.
+        mem0_service: Long-term memory service.
+        user_id: User identifier for memory operations.
+    
+    Returns:
+        AppDependencies with all configured services.
+    """
     if llm is None:
         llm = ChatOpenAI(model="gpt-4o-mini")
     

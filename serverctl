@@ -111,7 +111,7 @@ up() {
     load_env
     
     info_msg "Starting infrastructure services (Redis, Qdrant, RedisInsight)..."
-    docker compose up -d redis-database qdrant redis-insight || error_exit "Failed to start infrastructure services"
+    docker compose up -d redis-database qdrant redis-insight google_workspace_mcp || error_exit "Failed to start infrastructure services"
     
     info_msg "Waiting for Redis to be ready..."
     sleep 3

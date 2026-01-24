@@ -133,3 +133,6 @@ dmypy.json
 .DS_Store
 Thumbs.db
 
+# Google Workspace MCP Server
+google_workspace_mcp_server/.credentials/
+google_workspace_mcp_server/.oauth-state/

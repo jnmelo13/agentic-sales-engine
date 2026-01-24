@@ -2,6 +2,7 @@ from langgraph.graph import StateGraph
 
 from ..tools.search_tool import create_search_tool
 from ..tools.search_leads_tool import create_search_leads_tool
+from ..tools.google_workspace_tools import get_google_workspace_tools_sync
 from ..schema.state import State
 from ..graphs.nodes import register_nodes
 from ..graphs.edges import register_edges
@@ -19,7 +20,11 @@ def build_graph(dependencies: AppDependencies) -> StateGraph:
     Returns:
         Compiled state graph ready for execution
     """
-    icp_tool = retrieve_icp_tool(dependencies.llm)
+    
+    # Tool that reads content from CSV rather than a database
+    # Use this tool only when you have troubles to connect the MCP server
+    # icp_tool = retrieve_icp_tool(dependencies.llm)
+
     search_tool = create_search_tool(dependencies.web_search_service)
     search_memories_tool = create_search_memories_tool(
         dependencies.mem0_service, 
@@ -31,7 +36,11 @@ def build_graph(dependencies: AppDependencies) -> StateGraph:
         dependencies.embedding_service,
     )
 
-    orchestrator_tools = [icp_tool, search_memories_tool, search_tool, search_leads_tool]
+    orchestrator_tools = [search_memories_tool, search_tool, search_leads_tool]
+    
+    # Load Google Workspace tools (Sheets, Drive) for orchestrator
+    orchestrator_tools.extend(get_google_workspace_tools_sync())
+    
     search_tools = [search_tool]
 
     graph_builder = StateGraph(State)

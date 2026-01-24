@@ -31,6 +31,35 @@ services:
     depends_on:
       - redis-database
 
+  google_workspace_mcp:
+    build:
+      context: ./google_workspace_mcp_server
+      dockerfile: Dockerfile
+    container_name: google_workspace_mcp
+    ports:
+      - "8001:8001"
+    env_file:
+      - .env
+    environment:
+      - APP_HOSTNAME=0.0.0.0
+      - APP_PORT=8001
+      - OAUTHLIB_INSECURE_TRANSPORT=1
+      - GOOGLE_OAUTH_CLIENT_ID=${GOOGLE_OAUTH_CLIENT_ID}
+      - GOOGLE_OAUTH_CLIENT_SECRET=${GOOGLE_OAUTH_CLIENT_SECRET}
+      # Use disk storage for OAuth state persistence
+      - WORKSPACE_MCP_OAUTH_PROXY_STORAGE_BACKEND=disk
+      - WORKSPACE_MCP_OAUTH_PROXY_DISK_DIRECTORY=/app/.oauth-state
+    volumes:
+      - ./google_workspace_mcp_server/.credentials:/app/.credentials
+      - ./google_workspace_mcp_server/.oauth-state:/app/.oauth-state
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8001/mcp || exit 1"]
+      interval: 30s
+      retries: 5
+      start_period: 10s
+      timeout: 10s
+
   b2b_agent:
     build:
       context: .
@@ -53,9 +82,13 @@ services:
       - QDRANT_COLLECTION=leads
       - QDRANT_TIMEOUT=10.0
       - QDRANT_BATCH_SIZE=100
+      # Google Workspace MCP Configuration
+      - WORKSPACE_MCP_BASE_URI=http://google_workspace_mcp
+      - WORKSPACE_MCP_PORT=8001
     depends_on:
       - qdrant
       - redis-database
+      - google_workspace_mcp
 
 volumes:
   qdrant_storage:

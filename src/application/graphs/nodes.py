@@ -34,6 +34,7 @@ def register_nodes(
     graph.add_node("summary", create_summary_node(llm))
 
     # Tool nodes - scoped by responsibility
-    graph.add_node("orchestrator_tools", ToolNode(tools=orchestrator_tools))
-    graph.add_node("search_tools", ToolNode(tools=search_tools))
+    # Return errors as messages so LLM can handle auth flows
+    graph.add_node("orchestrator_tools", ToolNode(tools=orchestrator_tools, handle_tool_errors=True))
+    graph.add_node("search_tools", ToolNode(tools=search_tools, handle_tool_errors=True))
     graph.add_node("lead_storage", create_lead_storage_node(lead_storage))
